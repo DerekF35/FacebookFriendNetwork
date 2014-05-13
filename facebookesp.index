@@ -1,0 +1,16 @@
+Create facebookesp index:
+http://localhost:9200/facebookesp/
+
+
+{
+  "settings": {
+    "number_of_replicas": 0,
+    "analysis": {
+      "analyzer": {
+        "default": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}
