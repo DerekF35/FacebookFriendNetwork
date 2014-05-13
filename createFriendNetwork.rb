@@ -70,6 +70,7 @@ users.peach(10) do |u|
 end
 
 CSV.open("relationships.csv","w") do |csv|
+  csv << ["targ","frnd"]
   relations.each do |x|
     csv << [x["targ"]["un"],x["frnd"]["un"]]
   end
