@@ -46,7 +46,7 @@ end
 
 
 #TODO move to ARGV
-$accesstoken = "CAACEdEose0cBAPXOOyZAXuWdBuvroWCZC1WnU9rwWIHosKW0kDrbTzZBPZCqIIucrLV7uKlgAfqkHPR6pdYLAly9I3f30teZBGaM4NZBKbjEY1HCE5RGDPM1kkVKaMdSnRlBcGY91LZCSDD4wU7l4wlUlEud8Y9IBXuUZASOPp8ePZB8C1iz7PlgCyORLf4gHGEIZD"
+$accesstoken = ARGV[1]
 $host = "https://graph.facebook.com/v1.0/"
 
 # TODO change to list of profiles from CSV
