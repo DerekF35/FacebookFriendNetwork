@@ -67,15 +67,7 @@ def persistRelationship(id1 , id2 , un1 , un2)
   #post to relationship_all type
   url = "#{host}#{index}/#{type_all}/#{id_all}"
   response = RestClient.post url , json, :content_type => :json, :accept => :json
-  
-  #post opposite relationship to relationship_all 
-  json = {"target"=>un2,"friend"=>un1}
-  json = json.to_json
-  id_all = "#{id2}#{id1}"
 
-  url = "#{host}#{index}/#{type_all}/#{id_all}"
-  response = RestClient.post url , json, :content_type => :json, :accept => :json
-  
 end
 
 
@@ -115,15 +107,13 @@ end
 #STEP 2: Determine  all relationships between users.
 puts "Step 2 >>> Determine Relationships and store in array.  Post to ElasticSearch"
 relations = []
-users.each_with_index do | u , k1|
-    users.each_with_index do |t , k2|
-      if(k2 > k1)
+users.peach(5) do | u|
+    users.peach(20) do |t |
         if(getRelationship(u["fb_id"],t["fb_id"]))
           puts "Relationship found! #{u["fb_un"]} - #{t["fb_un"]}"
           persistRelationship(u["fb_id"],t["fb_id"] ,u["fb_un"],t["fb_un"])
           relations << { "targ" => u , "frnd" => t }
         end
-      end
     end
 end
 
