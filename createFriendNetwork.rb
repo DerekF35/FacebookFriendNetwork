@@ -2,20 +2,21 @@
 require "rest_client"
 require "json"
 require "peach"
+require "csv"
 
-def getFriends(u)
-  friends_uri = "#{u}/friends"
+def getRelationship(u,targ)
+  friends_uri = "#{u}/friends/#{targ}"
    
-   url = "#{$host}#{friends_uri}?limit=10000&access_token=#{$accesstoken}&fields=username"
+   url = "#{$host}#{friends_uri}?access_token=#{$accesstoken}"
    cont = true
-   puts url
    begin
      response  = RestClient.get url
    rescue => e
      cont = false
    end
    if cont
-     return response
+      tmp = JSON.parse(response)
+      return (tmp["data"].size > 0 )
    else
      return false
    end
@@ -24,7 +25,7 @@ end
 def getProfileInfo(u,fld)
   usr_uri = "#{u}"
    
-   url = "#{$host}#{usr_uri}?limit=10000&access_token=#{$accesstoken}"
+   url = "#{$host}#{usr_uri}?fields=#{fld}&access_token=#{$accesstoken}"
    cont = true
    begin
      response  = RestClient.get url
@@ -39,102 +40,37 @@ def getProfileInfo(u,fld)
    end
 end
 
-def persistRelationship(id1 , id2 , un1 , un2)
-  host = "http://localhost:9200/"
-  index = "facebookesp"
-  type = "relationship"
-  
-  id = ""
-  if id1.to_i < id2.to_i
-    id = "#{id1}#{id2}"
-  else
-    id = "#{id2}#{id1}"
-  end
-
-  url = "#{host}#{index}/#{type}/#{id}"
-  json = {"target"=>un1,"friend"=>un2}
-  json = json.to_json
-  
-  response = RestClient.post url , json, :content_type => :json, :accept => :json
+def pullProfilePic()
 end
 
-def persistFriends(id , json)
-  host = "http://localhost:9200/"
-  index = "facebookesp"
-  type = "friends"
-  
-  url = "#{host}#{index}/#{type}/#{id}"
-  
-  response = RestClient.post url , json, :content_type => :json, :accept => :json
-end
 
-def checkRelationship(un,id)
-  host = "http://localhost:9200/"
-  index = "facebookesp"
-  type = "friends"
-  uri = "_search"
-  
-  url = "#{host}#{index}/#{type}/#{uri}"
-  json = '{
-  "fields" : [],
-    "query": {
-      "bool": {
-        "must": [
-          {
-            "nested": {
-              "path": "friends.data",
-              "query": {
-                "bool": {
-                  "must": [
-                    {
-                      "term": {
-                        "data.id": "'+id+'"
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
-        ]
-      }
-    },
-    "size": 100
-  }'
-  puts json
-  response = RestClient.post url , json, :content_type => :json, :accept => :json
-  puts response
-  respArr = JSON.parse(response)
-  
-  if(respArr["hits"]["total"]>0)
-    respArr["hits"]["hits"].each do |x|
-      persistRelationship(id, x["_id"] , un , getProfileInfo(x["_id"],"username"))
-    end
-  end
-end
 
 #TODO move to ARGV
-$accesstoken = "CAACEdEose0cBAGZCSezbYeEGXh0uCPBbOymOLT6RkmC8dWDQefEEOGsCBN5S482ZCZAZCN9uPxNkzodQ5TVUKH69Mr72YQBkuE3vfIPLzl3nl2rLEw3mZBA4EgGIIK7lYETKRDcpDgMEJ4zJZBOXAsOGQkCz5vwmjnqWqHEk3ZB1WOlwqBlRg83fqIWGmljZAzoZD"
-$host = "https://graph.facebook.com/"
+$accesstoken = "CAACEdEose0cBAPXOOyZAXuWdBuvroWCZC1WnU9rwWIHosKW0kDrbTzZBPZCqIIucrLV7uKlgAfqkHPR6pdYLAly9I3f30teZBGaM4NZBKbjEY1HCE5RGDPM1kkVKaMdSnRlBcGY91LZCSDD4wU7l4wlUlEud8Y9IBXuUZASOPp8ePZB8C1iz7PlgCyORLf4gHGEIZD"
+$host = "https://graph.facebook.com/v1.0/"
 
 # TODO change to list of profiles from CSV
-users = ["nicole.fox.71","me","rayhe"]
- 
-users.each do |u|
-  frnds = getFriends(u)
-  uid = getProfileInfo(u,"id")
-  if(!frnds)
-    puts "#{u} friends blocked"
-  else
-    persistFriends(uid,frnds)
-  end
+users = []
+CSV.foreach(ARGV[0], :headers => true) do |csv_obj|
+   if(csv_obj["fb_id"].nil? == false)
+      x = {"un" => csv_obj["fb_id"] , "id" => getProfileInfo(csv_obj["fb_id"],"id")}
+      puts x
+      users << x
+   end
 end
 
-users.each do |u|
-  uid = getProfileInfo(u,"id")
-  if(!uid)
-    puts "#{u} friends blocked"
-  else
-    checkRelationship(u,getProfileInfo(u,"id"))
+relations = []
+users.peach(10) do |u|
+    users.peach(10) do |t|
+      if(getRelationship(u["id"],t["id"]))
+        puts "Relationship found!"
+        relations << { "targ" => u , "frnd" => t }
+      end
+    end
+end
+
+CSV.open("relationships.csv","w") do |csv|
+  relations.each do |x|
+    csv << [x["targ"]["un"],x["frnd"]["un"]]
   end
 end
